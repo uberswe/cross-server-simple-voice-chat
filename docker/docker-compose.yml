@@ -1,0 +1,72 @@
+# Two-backend + Velocity demo environment for Cross-Server Simple Voice Chat.
+#
+# Usage (from the repo root):
+#   ./gradlew shadowJar
+#   cd docker && ./setup.sh && docker compose up
+#
+# Connect a 1.21.1 NeoForge client (with Simple Voice Chat installed) to
+# localhost:25565 with two accounts. Move between backends with
+# /server server1 and /server server2, create a voice group (V key) on one
+# server and join it from the other.
+services:
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  velocity:
+    image: itzg/mc-proxy
+    environment:
+      TYPE: VELOCITY
+    ports:
+      - "25565:25577"        # Minecraft (TCP)
+      - "24454:24454/udp"    # Simple Voice Chat (UDP)
+    volumes:
+      - ./velocity/velocity.toml:/config/velocity.toml:ro
+      - ./velocity/plugins:/server/plugins:ro
+    depends_on:
+      - server1
+      - server2
+
+  server1:
+    image: itzg/minecraft-server:java21
+    environment: &server-env
+      TYPE: NEOFORGE
+      VERSION: "1.21.1"
+      NEOFORGE_VERSION: "21.1.231"
+      EULA: "TRUE"
+      ONLINE_MODE: "FALSE"
+      MEMORY: 3G
+      # Simple Voice Chat is fetched from Modrinth; the addon jar is mounted below
+      MODRINTH_PROJECTS: simple-voice-chat
+      # Cross-Server Simple Voice Chat configuration (env overrides the config file)
+      SERVER_NAME: server1
+      REDIS_HOST: redis
+      VOICE_RELAY_PORT: "9900"
+      VOICE_RELAY_HOST: server1
+    volumes:
+      - ./mods:/mods:ro
+      - server1-data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  server2:
+    image: itzg/minecraft-server:java21
+    environment:
+      <<: *server-env
+      SERVER_NAME: server2
+      VOICE_RELAY_HOST: server2
+    volumes:
+      - ./mods:/mods:ro
+      - server2-data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+
+volumes:
+  server1-data:
+  server2-data:

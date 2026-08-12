@@ -1,0 +1,23 @@
+config-version = "2.7"
+bind = "0.0.0.0:25577"
+motd = "Cross-Server Simple Voice Chat demo"
+show-max-players = 20
+online-mode = false
+
+# Demo only: no player-info forwarding, so it works on a stock NeoForge server
+# without a forwarding mod. For production use modern forwarding plus a
+# forwarding mod on the backends (e.g. NeoForwarding).
+player-info-forwarding-mode = "NONE"
+forwarding-secret-file = "forwarding.secret"
+
+[servers]
+server1 = "server1:25565"
+server2 = "server2:25565"
+try = ["server1"]
+
+[forced-hosts]
+
+[advanced]
+
+[query]
+enabled = false
